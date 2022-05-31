@@ -4,12 +4,12 @@ Set your access key to `UNSPLASH_ACCESS_KEY` in `.env`
 
 ## Get Photos
 
-List 10 photos ([See it](https://unsplash-search.vercel.app/api/photos))
+List 10 photos ([See it](https://unsplash-api-search.vercel.app/api/photos))
 ```
 /api/photos
 ```
 
-Search by query ([See it](https://unsplash-search.vercel.app/api/search/photos))
+Search by query ([See it](https://unsplash-api-search.vercel.app/api/search/photos))
 ```
 /api/search/photos
 ```
