@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import cors from '../../../../lib/cors'
 
 export async function middleware(req: NextRequest) {
     const params = req.nextUrl.searchParams
@@ -18,10 +19,13 @@ export async function middleware(req: NextRequest) {
         },
     })
 
-    // Return data to client
-    return new Response(JSON.stringify(await data.json()), {
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    })
+    // Return data to client with cors headers
+    return cors(
+        req,
+        new Response(JSON.stringify(await data.json()), {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        }),
+    )
 }
