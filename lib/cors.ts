@@ -24,7 +24,7 @@ interface CorsOptions {
 
 const defaultOptions: CorsOptions = {
     origin: '*',
-    methods: 'GET,POST',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     preflightContinue: false,
     optionsSuccessStatus: 204,
 }
