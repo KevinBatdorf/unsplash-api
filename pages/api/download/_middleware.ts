@@ -4,9 +4,8 @@ import cors from '../../../lib/cors'
 export async function middleware(req: NextRequest) {
     let url
     try {
-        // @ts-ignore
-        const { download_location } = await req?.formData()
-        url = download_location
+        const data = await req?.formData()
+        url = data.get('download_location')
     } catch (e) {
         console.error(e)
         return new Response(JSON.stringify({}), {
