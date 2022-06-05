@@ -19,14 +19,17 @@ export async function middleware(req: NextRequest) {
         },
     })
 
-    const totalPages = Number(response.headers.get('x-total') ?? -1)
-    const perPage = Number(response.headers.get('x-per-page') ?? -1)
-    const remaingingPages = Math.floor(totalPages / perPage)
+    const totalPhotos = Number(response.headers.get('x-total'))
+    const perPage = Number(response.headers.get('x-per-page'))
+    const totalPages =
+        totalPhotos && perPage ? Math.floor(totalPhotos / perPage) : undefined
 
+    const json = await response.json()
     const data = {
-        photos: await response.json(),
-        total_pages: totalPages,
-        remaining_pages: remaingingPages,
+        errors: json.errors,
+        photos: json?.errors?.length > 0 ? undefined : json,
+        total_photos: totalPhotos ?? undefined,
+        total_pages: totalPages ?? undefined,
     }
 
     // Return data to client with cors headers
