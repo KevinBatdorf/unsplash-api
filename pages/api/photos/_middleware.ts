@@ -13,16 +13,26 @@ export async function middleware(req: NextRequest) {
     }
 
     // Get data from unsplash API
-    const data = await fetch(url, {
+    const response = await fetch(url, {
         headers: {
             Authorization: `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}`,
         },
     })
 
+    const totalPages = Number(response.headers.get('x-total') ?? -1)
+    const perPage = Number(response.headers.get('x-per-page') ?? -1)
+    const remaingingPages = Math.floor(totalPages / perPage)
+
+    const data = {
+        photos: await response.json(),
+        total_pages: totalPages,
+        remaining_pages: remaingingPages,
+    }
+
     // Return data to client with cors headers
     return cors(
         req,
-        new Response(JSON.stringify(await data.json()), {
+        new Response(JSON.stringify(data), {
             headers: {
                 'Content-Type': 'application/json',
             },
