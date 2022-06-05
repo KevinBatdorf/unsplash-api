@@ -2,12 +2,13 @@ import { NextRequest } from 'next/server'
 import cors from '../../../lib/cors'
 
 export async function middleware(req: NextRequest) {
-    // Get download_location from post body
     let url
     try {
-        const { download_location } = await req?.json()
+        // @ts-ignore
+        const { download_location } = await req?.formData()
         url = download_location
     } catch (e) {
+        console.error(e)
         return new Response(JSON.stringify({}), {
             status: 400,
         })
