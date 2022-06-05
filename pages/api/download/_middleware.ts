@@ -4,8 +4,9 @@ import cors from '../../../lib/cors'
 export async function middleware(req: NextRequest) {
     let url
     try {
-        const data = await req?.formData()
+        const data = await req.formData()
         url = data.get('download_location')
+        if (typeof url !== 'string') throw new Error('Invalid URL')
     } catch (e) {
         console.error(e)
         return new Response(JSON.stringify({}), {
