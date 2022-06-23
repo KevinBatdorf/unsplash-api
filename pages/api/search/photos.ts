@@ -1,10 +1,17 @@
 import { NextApiRequest, NextApiResponse } from 'next'
+import Cors from 'cors'
+import initMiddleware from '../../../lib/init-middleware'
+
+const cors = initMiddleware(Cors({ methods: ['GET', 'OPTIONS'] }))
 
 export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse,
 ) {
-    const url = 'https://api.unsplash.com/search/photos?' + req.query
+    await cors(req, res)
+
+    const params = new URLSearchParams(req.query as { [key: string]: string })
+    const url = 'https://api.unsplash.com/search/photos?' + params?.toString()
 
     if (req.method !== 'GET') {
         return res.status(405).json({})
