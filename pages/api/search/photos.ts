@@ -1,15 +1,13 @@
-import { NextRequest } from 'next/server'
-import cors from '../../../lib/cors'
+import { NextApiRequest, NextApiResponse } from 'next'
 
-export async function middleware(req: NextRequest) {
-    const params = req.nextUrl.searchParams
-    const url = 'https://api.unsplash.com/photos?' + params
+export default async function handler(
+    req: NextApiRequest,
+    res: NextApiResponse,
+) {
+    const url = 'https://api.unsplash.com/search/photos?' + req.query
 
-    // Make sure its a GET request
     if (req.method !== 'GET') {
-        return new Response(JSON.stringify({}), {
-            status: 405,
-        })
+        return res.status(405).json({})
     }
 
     // Get data from unsplash API
@@ -27,18 +25,11 @@ export async function middleware(req: NextRequest) {
     const json = await response.json()
     const data = {
         errors: json.errors,
-        photos: json?.errors?.length > 0 ? undefined : json,
+        // This endpoint returns json.results
+        photos: json?.errors?.length > 0 ? undefined : json?.results,
         total_photos: totalPhotos ?? undefined,
         total_pages: totalPages ?? undefined,
     }
 
-    // Return data to client with cors headers
-    return cors(
-        req,
-        new Response(JSON.stringify(data), {
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        }),
-    )
+    return res.status(200).json(data)
 }
