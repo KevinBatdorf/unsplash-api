@@ -11,7 +11,9 @@ export default async function handler(
     await cors(req, res)
 
     const params = new URLSearchParams(req.query as { [key: string]: string })
-    const url = 'https://api.unsplash.com/search/photos?' + params?.toString()
+    const url =
+        'https://api.unsplash.com/search/photos?order_by=latest&' +
+        params?.toString()
 
     if (req.method !== 'GET') {
         return res.status(405).json({})
