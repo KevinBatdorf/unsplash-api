@@ -10,15 +10,10 @@ export default async function Photos(req: NextRequest) {
 
     const params = req.nextUrl.searchParams
     const source = params.get('imageSource') || 'unsplash'
-    const page = params.get('page') || 1
     const lexica = source === 'lexica'
 
     const url = lexica
-        ? `https://lexica.art/api/v1/search?q=${randomWords({
-              seed: `lexica-${page}`,
-              exactly: 1,
-              wordsPerString: 4,
-          }).at(0)}`
+        ? `https://lexica.art/api/v1/search?q=${randomWords(1).at(0)}`
         : `https://api.unsplash.com/photos?${params?.toString() ?? ''}`
 
     const start = Date.now()
