@@ -3,7 +3,8 @@ import cors from '../../../lib/cors'
 
 export const config = { runtime: 'edge' }
 export default async function SearchPhotos(req: NextRequest) {
-    if (req.method !== 'GET') return NextResponse.json({}, { status: 405 })
+    if (req.method !== 'GET')
+        return cors(req, NextResponse.json({}, { status: 405 }))
 
     const params = req.nextUrl.searchParams
     const q = params.get('query')
