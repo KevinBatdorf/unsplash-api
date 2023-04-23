@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import cors from '../../../lib/cors'
+import randomWords from 'random-words'
 
 export const config = { runtime: 'edge' }
 export default async function SearchPhotos(req: NextRequest) {
@@ -9,13 +10,23 @@ export default async function SearchPhotos(req: NextRequest) {
     const params = req.nextUrl.searchParams
     const q = params.get('query')
     const source = params.get('imageSource') || 'unsplash'
+    const lexica = source === 'lexica'
+    const page = params.get('page') || 1
 
-    const url =
-        source === 'lexica'
-            ? `https://lexica.art/api/v1/search?q=${q}`
-            : `https://api.unsplash.com/search/photos?order_by=latest&${
-                  params?.toString() ?? ''
-              }`
+    // If lexica, we can fake pagination by just adding a ranodm word to the end of the query
+    const url = lexica
+        ? `https://lexica.art/api/v1/search?q=${q}${
+              Number(page) > 1
+                  ? ` ${randomWords({
+                        seed: `lexica-${q}-${page}-search`,
+                        exactly: 1,
+                        wordsPerString: 4,
+                    }).at(0)}`
+                  : ''
+          }`
+        : `https://api.unsplash.com/search/photos?order_by=latest&${
+              params?.toString() ?? ''
+          }`
 
     const start = Date.now()
     const response = await fetch(url, {
@@ -28,19 +39,23 @@ export default async function SearchPhotos(req: NextRequest) {
         return cors(
             req,
             NextResponse.json(
-                { message: 'Too many requests' },
+                {
+                    message: `Too many requests. Please wait ${
+                        response.headers.get('retry-after') || 'a few'
+                    } seconds`,
+                },
                 { status: 429 },
             ),
         )
     }
 
-    const totalPhotos = Number(response.headers.get('x-total') || 0)
-    const perPage = Number(response.headers.get('x-per-page') || 0)
+    const totalPhotos = Number(response.headers.get('x-total'))
+    const perPage = Number(response.headers.get('x-per-page'))
     const totalPages =
         totalPhotos && perPage ? Math.floor(totalPhotos / perPage) : undefined
 
     const json = await response.json()
-    const results = (source === 'lexica' ? json?.images : json?.results) || []
+    const results = (lexica ? json?.images : json?.results) || []
 
     const data = {
         errors: json.errors,
@@ -49,8 +64,8 @@ export default async function SearchPhotos(req: NextRequest) {
             json?.errors?.length > 0
                 ? undefined
                 : results?.map((photo: any) => ({ ...photo, source })),
-        total_photos: totalPhotos ?? undefined,
-        total_pages: totalPages ?? undefined,
+        total_photos: lexica ? 10_000 : totalPhotos ?? undefined,
+        total_pages: lexica ? 10_000 / 50 : totalPages ?? undefined,
     }
 
     const headers = { 'X-Api-Latency': `${Date.now() - start}ms` }
