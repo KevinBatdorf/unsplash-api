@@ -19,9 +19,7 @@ export default async function Photos(req: NextRequest) {
               exactly: 1,
               wordsPerString: 4,
           }).at(0)}`
-        : `https://api.unsplash.com/photos?order_by=latest&${
-              params?.toString() ?? ''
-          }`
+        : `https://api.unsplash.com/photos?${params?.toString() ?? ''}`
 
     const start = Date.now()
     const response = await fetch(url, {
@@ -50,7 +48,7 @@ export default async function Photos(req: NextRequest) {
         totalPhotos && perPage ? Math.floor(totalPhotos / perPage) : undefined
 
     const json = await response.json()
-    const results = (lexica ? json?.images : json?.results) || []
+    const results = (lexica ? json?.images : json) || []
 
     const data = {
         errors: json.errors,
