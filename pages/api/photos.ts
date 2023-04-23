@@ -7,7 +7,15 @@ export default async function Photos(req: NextRequest) {
     if (req.method !== 'GET') return NextResponse.json({}, { status: 405 })
 
     const params = req.nextUrl.searchParams
-    const url = 'https://api.unsplash.com/photos?' + (params?.toString() ?? '')
+    const q = params.get('query')
+    const source = params.get('imageSource') || 'unsplash'
+
+    const url =
+        source === 'lexica'
+            ? `https://lexica.art/api/v1/search?q=${q}`
+            : `https://api.unsplash.com/photos?order_by=latest&${
+                  params?.toString() ?? ''
+              }`
 
     const start = Date.now()
     const response = await fetch(url, {
@@ -16,15 +24,30 @@ export default async function Photos(req: NextRequest) {
         },
     })
 
+    if (response?.status === 429) {
+        return cors(
+            req,
+            NextResponse.json(
+                { message: 'Too many requests' },
+                { status: 429 },
+            ),
+        )
+    }
+
     const totalPhotos = Number(response.headers.get('x-total'))
     const perPage = Number(response.headers.get('x-per-page'))
     const totalPages =
         totalPhotos && perPage ? Math.floor(totalPhotos / perPage) : undefined
 
     const json = await response.json()
+    const results = (source === 'lexica' ? json?.images : json?.results) || []
+
     const data = {
         errors: json.errors,
-        photos: json?.errors?.length > 0 ? undefined : json,
+        photos:
+            json?.errors?.length > 0
+                ? undefined
+                : results?.map((photo: any) => ({ ...photo, source })),
         total_photos: totalPhotos ?? undefined,
         total_pages: totalPages ?? undefined,
     }

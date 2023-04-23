@@ -3,10 +3,18 @@ import cors from '../../../lib/cors'
 
 export const config = { runtime: 'edge' }
 export default async function SearchPhotos(req: NextRequest) {
+    if (req.method !== 'GET') return NextResponse.json({}, { status: 405 })
+
     const params = req.nextUrl.searchParams
+    const q = params.get('query')
+    const source = params.get('imageSource') || 'unsplash'
+
     const url =
-        'https://api.unsplash.com/search/photos?order_by=latest&' +
-        (params?.toString() ?? '')
+        source === 'lexica'
+            ? `https://lexica.art/api/v1/search?q=${q}`
+            : `https://api.unsplash.com/search/photos?order_by=latest&${
+                  params?.toString() ?? ''
+              }`
 
     const start = Date.now()
     const response = await fetch(url, {
@@ -15,17 +23,31 @@ export default async function SearchPhotos(req: NextRequest) {
         },
     })
 
-    const totalPhotos = Number(response.headers.get('x-total'))
-    const perPage = Number(response.headers.get('x-per-page'))
+    if (response?.status === 429) {
+        return cors(
+            req,
+            NextResponse.json(
+                { message: 'Too many requests' },
+                { status: 429 },
+            ),
+        )
+    }
+
+    const totalPhotos = Number(response.headers.get('x-total') || 0)
+    const perPage = Number(response.headers.get('x-per-page') || 0)
     const totalPages =
         totalPhotos && perPage ? Math.floor(totalPhotos / perPage) : undefined
 
     const json = await response.json()
+    const results = (source === 'lexica' ? json?.images : json?.results) || []
 
     const data = {
         errors: json.errors,
         // This endpoint returns json.results
-        photos: json?.errors?.length > 0 ? undefined : json?.results,
+        photos:
+            json?.errors?.length > 0
+                ? undefined
+                : results?.map((photo: any) => ({ ...photo, source })),
         total_photos: totalPhotos ?? undefined,
         total_pages: totalPages ?? undefined,
     }
