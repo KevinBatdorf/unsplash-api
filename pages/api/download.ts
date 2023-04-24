@@ -6,9 +6,10 @@ export default async function Download(
     req: NextRequest,
     context: NextFetchEvent,
 ) {
-    if (req.method !== 'POST') return NextResponse.json({}, { status: 405 })
+    if (req.method !== 'POST')
+        return cors(req, NextResponse.json({}, { status: 405 }))
     const hasBody = req.headers.get('content-length') !== '0'
-    if (!hasBody) return NextResponse.json({}, { status: 400 })
+    if (!hasBody) return cors(req, NextResponse.json({}, { status: 400 }))
 
     const url = await req.text()
     context.waitUntil(
