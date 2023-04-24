@@ -1,25 +1,14 @@
-import { NextApiRequest, NextApiResponse } from 'next'
-import Cors from 'cors'
-import initMiddleware from '../../../lib/init-middleware'
+import { NextRequest, NextResponse } from 'next/server'
+import cors from '../../../lib/cors'
 
-const cors = initMiddleware(Cors({ methods: ['GET', 'OPTIONS'] }))
-
-export default async function handler(
-    req: NextApiRequest,
-    res: NextApiResponse,
-) {
-    await cors(req, res)
-
-    const params = new URLSearchParams(req.query as { [key: string]: string })
+export const config = { runtime: 'edge' }
+export default async function SearchPhotos(req: NextRequest) {
+    const params = req.nextUrl.searchParams
     const url =
         'https://api.unsplash.com/search/photos?order_by=latest&' +
-        params?.toString()
+        (params?.toString() ?? '')
 
-    if (req.method !== 'GET') {
-        return res.status(405).json({})
-    }
-
-    // Get data from unsplash API
+    const start = Date.now()
     const response = await fetch(url, {
         headers: {
             Authorization: `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}`,
@@ -32,6 +21,7 @@ export default async function handler(
         totalPhotos && perPage ? Math.floor(totalPhotos / perPage) : undefined
 
     const json = await response.json()
+
     const data = {
         errors: json.errors,
         // This endpoint returns json.results
@@ -40,5 +30,6 @@ export default async function handler(
         total_pages: totalPages ?? undefined,
     }
 
-    return res.status(200).json(data)
+    const headers = { 'X-Api-Latency': `${Date.now() - start}ms` }
+    return cors(req, NextResponse.json(data, { status: 200, headers }))
 }

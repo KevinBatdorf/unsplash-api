@@ -1,35 +1,24 @@
-import { NextApiRequest, NextApiResponse } from 'next'
-import Cors from 'cors'
-import initMiddleware from '../../lib/init-middleware'
+import { NextFetchEvent, NextRequest, NextResponse } from 'next/server'
+import cors from '../../lib/cors'
 
-const cors = initMiddleware(
-    Cors({
-        methods: ['GET', 'POST', 'OPTIONS'],
-    }),
-)
-
-export default async function handler(
-    req: NextApiRequest,
-    res: NextApiResponse,
+export const config = { runtime: 'edge' }
+export default async function Download(
+    req: NextRequest,
+    context: NextFetchEvent,
 ) {
-    await cors(req, res)
+    if (req.method !== 'POST') return NextResponse.json({}, { status: 405 })
+    const hasBody = req.headers.get('content-length') !== '0'
+    if (!hasBody) return NextResponse.json({}, { status: 400 })
 
-    if (!req.body) {
-        return res.status(400).json({})
-    }
+    const url = await req.text()
+    context.waitUntil(
+        fetch(url, {
+            method: 'GET',
+            headers: {
+                Authorization: `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}`,
+            },
+        }),
+    )
 
-    // Make sure its a POST request
-    if (req.method !== 'POST') {
-        return res.status(405).json({})
-    }
-
-    // Get data from unsplash API
-    const response = await fetch(String(req.body), {
-        method: 'GET',
-        headers: {
-            Authorization: `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}`,
-        },
-    })
-
-    res.status(200).json(await response.json())
+    return cors(req, NextResponse.json({ success: true }, { status: 200 }))
 }
