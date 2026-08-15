@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import cors from '../../lib/cors'
-import randomWords from 'random-words'
+import { generate } from 'random-words'
+import cors from '../../../lib/cors'
 
-export const config = { runtime: 'edge' }
+export async function OPTIONS(req: NextRequest) {
+    return cors(req, new NextResponse(null))
+}
 
-export default async function Photos(req: NextRequest) {
-    if (req.method !== 'GET')
-        return cors(req, NextResponse.json({}, { status: 405 }))
-
+export async function GET(req: NextRequest) {
     const params = req.nextUrl.searchParams
     const source = params.get('imageSource') || 'unsplash'
     const lexica = source === 'lexica'
 
     const url = lexica
-        ? `https://lexica.art/api/v1/search?q=${randomWords({
+        ? `https://lexica.art/api/v1/search?q=${generate({
               exactly: 1,
               wordsPerString: 2,
           }).at(0)}`
@@ -53,7 +52,10 @@ export default async function Photos(req: NextRequest) {
         photos:
             json?.errors?.length > 0
                 ? undefined
-                : results?.map((photo: any) => ({ ...photo, source })),
+                : results?.map((photo: Record<string, unknown>) => ({
+                      ...photo,
+                      source,
+                  })),
         total_photos: lexica ? 10_000 : totalPhotos ?? undefined,
         total_pages: lexica ? 10_000 / 50 : totalPages ?? undefined,
     }

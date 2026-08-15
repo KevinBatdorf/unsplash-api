@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import cors from '../../../lib/cors'
-import randomWords from 'random-words'
+import { generate } from 'random-words'
+import cors from '../../../../lib/cors'
 
-export const config = { runtime: 'edge' }
-export default async function SearchPhotos(req: NextRequest) {
-    if (req.method !== 'GET')
-        return cors(req, NextResponse.json({}, { status: 405 }))
+export async function OPTIONS(req: NextRequest) {
+    return cors(req, new NextResponse(null))
+}
 
+export async function GET(req: NextRequest) {
     const params = req.nextUrl.searchParams
     const q = params.get('query')
     const source = params.get('imageSource') || 'unsplash'
@@ -17,7 +17,7 @@ export default async function SearchPhotos(req: NextRequest) {
     const url = lexica
         ? `https://lexica.art/api/v1/search?q=${q}${
               Number(page) > 1
-                  ? ` ${randomWords({
+                  ? ` ${generate({
                         seed: `lexica-${q}-${page}-search`,
                         exactly: 1,
                         wordsPerString: 4,
@@ -63,7 +63,10 @@ export default async function SearchPhotos(req: NextRequest) {
         photos:
             json?.errors?.length > 0
                 ? undefined
-                : results?.map((photo: any) => ({ ...photo, source })),
+                : results?.map((photo: Record<string, unknown>) => ({
+                      ...photo,
+                      source,
+                  })),
         total_photos: lexica ? 10_000 : totalPhotos ?? undefined,
         total_pages: lexica ? 10_000 / 50 : totalPages ?? undefined,
     }
