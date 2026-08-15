@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generate } from 'random-words'
 import cors from '../../../lib/cors'
 
 export async function OPTIONS(req: NextRequest) {
@@ -8,15 +7,7 @@ export async function OPTIONS(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
     const params = req.nextUrl.searchParams
-    const source = params.get('imageSource') || 'unsplash'
-    const lexica = source === 'lexica'
-
-    const url = lexica
-        ? `https://lexica.art/api/v1/search?q=${generate({
-              exactly: 1,
-              wordsPerString: 2,
-          }).at(0)}`
-        : `https://api.unsplash.com/photos?${params?.toString() ?? ''}`
+    const url = `https://api.unsplash.com/photos?${params?.toString() ?? ''}`
 
     const start = Date.now()
     const response = await fetch(url, {
@@ -45,7 +36,7 @@ export async function GET(req: NextRequest) {
         totalPhotos && perPage ? Math.floor(totalPhotos / perPage) : undefined
 
     const json = await response.json()
-    const results = (lexica ? json?.images : json) || []
+    const results = json || []
 
     const data = {
         errors: json.errors,
@@ -54,10 +45,10 @@ export async function GET(req: NextRequest) {
                 ? undefined
                 : results?.map((photo: Record<string, unknown>) => ({
                       ...photo,
-                      source,
+                      source: 'unsplash',
                   })),
-        total_photos: lexica ? 10_000 : totalPhotos ?? undefined,
-        total_pages: lexica ? 10_000 / 50 : totalPages ?? undefined,
+        total_photos: totalPhotos ?? undefined,
+        total_pages: totalPages ?? undefined,
     }
 
     const headers = { 'X-Api-Latency': `${Date.now() - start}ms` }
