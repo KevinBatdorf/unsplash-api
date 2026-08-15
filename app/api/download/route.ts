@@ -1,18 +1,16 @@
-import { NextFetchEvent, NextRequest, NextResponse } from 'next/server'
-import cors from '../../lib/cors'
+import { NextRequest, NextResponse, after } from 'next/server'
+import cors from '../../../lib/cors'
 
-export const config = { runtime: 'edge' }
-export default async function Download(
-    req: NextRequest,
-    context: NextFetchEvent,
-) {
-    if (req.method !== 'POST')
-        return cors(req, NextResponse.json({}, { status: 405 }))
+export async function OPTIONS(req: NextRequest) {
+    return cors(req, new NextResponse(null))
+}
+
+export async function POST(req: NextRequest) {
     const hasBody = req.headers.get('content-length') !== '0'
     if (!hasBody) return cors(req, NextResponse.json({}, { status: 400 }))
 
     const url = await req.text()
-    context.waitUntil(
+    after(
         fetch(url, {
             method: 'GET',
             headers: {

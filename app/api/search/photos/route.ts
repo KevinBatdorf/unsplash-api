@@ -1,23 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import cors from '../../lib/cors'
-import randomWords from 'random-words'
+import cors from '../../../../lib/cors'
 
-export const config = { runtime: 'edge' }
+export async function OPTIONS(req: NextRequest) {
+    return cors(req, new NextResponse(null))
+}
 
-export default async function Photos(req: NextRequest) {
-    if (req.method !== 'GET')
-        return cors(req, NextResponse.json({}, { status: 405 }))
-
+export async function GET(req: NextRequest) {
     const params = req.nextUrl.searchParams
-    const source = params.get('imageSource') || 'unsplash'
-    const lexica = source === 'lexica'
-
-    const url = lexica
-        ? `https://lexica.art/api/v1/search?q=${randomWords({
-              exactly: 1,
-              wordsPerString: 2,
-          }).at(0)}`
-        : `https://api.unsplash.com/photos?${params?.toString() ?? ''}`
+    const url = `https://api.unsplash.com/search/photos?order_by=latest&${
+        params?.toString() ?? ''
+    }`
 
     const start = Date.now()
     const response = await fetch(url, {
@@ -32,7 +24,7 @@ export default async function Photos(req: NextRequest) {
             NextResponse.json(
                 {
                     message: `Too many requests. Please wait ${
-                        response.headers.get('x-retry-after') || 'a few'
+                        response.headers.get('retry-after') || 'a few'
                     } seconds`,
                 },
                 { status: 429 },
@@ -46,16 +38,20 @@ export default async function Photos(req: NextRequest) {
         totalPhotos && perPage ? Math.floor(totalPhotos / perPage) : undefined
 
     const json = await response.json()
-    const results = (lexica ? json?.images : json) || []
+    const results = json?.results || []
 
     const data = {
         errors: json.errors,
+        // This endpoint returns json.results
         photos:
             json?.errors?.length > 0
                 ? undefined
-                : results?.map((photo: any) => ({ ...photo, source })),
-        total_photos: lexica ? 10_000 : totalPhotos ?? undefined,
-        total_pages: lexica ? 10_000 / 50 : totalPages ?? undefined,
+                : results?.map((photo: Record<string, unknown>) => ({
+                      ...photo,
+                      source: 'unsplash',
+                  })),
+        total_photos: totalPhotos ?? undefined,
+        total_pages: totalPages ?? undefined,
     }
 
     const headers = { 'X-Api-Latency': `${Date.now() - start}ms` }
